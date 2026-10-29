@@ -2,11 +2,14 @@
 
 > **An operational decision-support and quantitative error analytics platform built for UK electricity utilities trading in the wholesale Day-Ahead power market.**
 
+[![Live Demo](https://img.shields.io/badge/Live%20App-energy--product.vercel.app-00DC82?style=for-the-badge&logo=vercel&logoColor=white)](https://energy-product.vercel.app/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.110-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20TypeScript-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
 [![TailwindCSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 [![Docker](https://img.shields.io/badge/Container-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com)
 [![Data Source](https://img.shields.io/badge/Data-Elexon%20BMRS%20Insights-FF6F00.svg)](https://bmrs.elexon.co.uk)
+
+🔗 **Live Production URL:** [https://energy-product.vercel.app/](https://energy-product.vercel.app/)
 
 ---
 
@@ -69,7 +72,7 @@ flowchart TD
 ├── requirements.txt             # Root Python dependencies
 ├── .dockerignore                # Container build exclusions
 ├── .gitignore                   # Git version control ignore rules
-├── README.md                    # Project documentation & presentation guide
+├── README.md                    # Project documentation & reference
 │
 ├── api/                         # Vercel Serverless entry point
 │   └── index.py                 # ASGI gateway to FastAPI backend
@@ -187,14 +190,11 @@ Open your browser at **`http://localhost:3000`** (Vite proxies API calls to `loc
 
 ## 6. Deployment Guide
 
-### Vercel Deployment
-The repository includes `vercel.json` and `api/index.py`:
-1. Authenticate Vercel CLI: `vercel login`
-2. Deploy to production:
-   ```bash
-   vercel --prod
-   ```
-3. Live URL will be output by Vercel.
+### Vercel Deployment (Live Production)
+- **Live URL:** [https://energy-product.vercel.app/](https://energy-product.vercel.app/)
+- **Configuration:** Handled via root `vercel.json` and `api/index.py` serverless runtime.
+- **Build Command:** `cd frontend && npm install && npm run build`
+- **Output Directory:** `frontend/dist`
 
 ### Heroku Deployment
 The repository includes a `Procfile`:
@@ -206,46 +206,12 @@ heroku open
 
 ---
 
-## 7. Video Demo Presentation Guide (10-Minute Script)
-
-> **Structure**: 2 parts, strictly under 10 minutes total (Part 1 $\le 5$ min, Part 2 $\le 5$ min).
-
-### Part 1: Client Pitch (Max 5 Minutes)
-- **Target Audience**: Energy Utility Wholesale Trading Desk Lead & Power Portfolio Managers.
-- **Goal**: Demonstrate how this tool directly solves their daily challenge: knowing how much thermal power to buy on Day-Ahead auctions without suffering cashout imbalance penalties.
-- **Talking Points**:
-  1. *The Challenge (0:00 - 1:00)*:
-     "Every morning before 11:00 GMT, your trading desk must commit millions of pounds on the day-ahead auction. If you over-rely on an optimistic wind forecast, you're short and get penalized at high System Buy Prices in the Balancing Mechanism. If you over-buy thermal, you spill renewable energy."
-  2. *The Decision Desk in Action (1:00 - 2:30)*:
-     "Show the **Day-Ahead Decision Desk**. Select Delivery Date (e.g. Jan 15). Demonstrate how the platform strictly enforces the $D-1$ 11:00 GMT gate cutoff. The cyan line shows the exact actionable forecast your traders had on their screen; the emerald line shows what the wind actually delivered. Notice how the red shortfall bars highlight hours where wind fell short."
-  3. *Thermal Procurement Simulator (2:30 - 4:00)*:
-     "Switch to the **Thermal Procurement Gap** tab. Toggle from National Scale to Utility Portfolio Scale. Show the Risk Tolerance slider: at 50% deterministic, you leave yourself exposed. But toggle to **90% Confidence**: the platform applies a quantified risk buffer based on real historical forecast error. Point to the ROI card: *£787k in avoided cashout penalties* with 100% shortfall risk mitigation."
-  4. *Client Takeaway (4:00 - 5:00)*:
-     "This tool transforms raw meteorological data into actionable wholesale purchase orders. It protects your bottom line and automates your day-ahead bidding strategy."
-
----
-
-### Part 2: Tech Lead Review & Architecture (Max 5 Minutes)
-- **Target Audience**: Internal Technical Lead & Software Architects.
-- **Goal**: Walk through the software architecture, engineering standards, data pipelines, error analytics, and code structure.
-- **Talking Points**:
-  1. *Architecture Overview (5:00 - 6:00)*:
-     "Walk through the system diagram. Backend is Python 3.12 with FastAPI for asynchronous performance and typed Pydantic models. Frontend is React 18 with TypeScript, Vite, Tailwind CSS, and Recharts. Containerized via a multi-stage Dockerfile."
-  2. *Data Pipeline & Domain Logic (6:00 - 7:30)*:
-     "Show `backend/ingest_elexon.py`. We stream directly from Elexon BMRS `FUELHH` (filtering `fuelType == 'WIND'`) and `WINDFOR`. We ingested all 1,488 settlement periods of January 2026 into SQLite. Note how we handle the resolution gap: FUELHH is half-hourly (30 min) while WINDFOR is hourly (60 min). Our query logic in `forecast_service.py` uses SQL window functions (`ROW_NUMBER() OVER PARTITION BY start_time ORDER BY publish_time DESC`) to guarantee zero future-data leakage."
-  3. *Quantitative Analytics Implementation (7:30 - 8:45)*:
-     "Highlight `analytics_service.py`. We compute MAE, RMSE, MBE, and WAPE across the entire month. Show the lead-time degradation chart: error increases monotonically from 1,767 MW (0-6h) up to 2,371 MW (48-72h). Show the error distribution histogram and shortfall probability percentiles ($P_{50}, P_{90}, P_{95}$)."
-  4. *Testing, Docker & Deployment (8:45 - 10:00)*:
-     "Show `backend/tests/test_api.py`: 8 comprehensive integration tests passing in < 0.5s. Multi-stage Dockerfile compiles React into static assets and serves them directly through FastAPI in production, or as separate dev containers. Ready for 1-click Vercel/Heroku deployment."
-
----
-
-## 8. AI Tools Disclosure
+## 7. AI Tools Disclosure
 
 As required by the assignment guidelines, AI tools (Google Gemini 3.8 / Antigravity pair programming assistant) were utilized during the development of this project for:
 - Accelerated scaffolding of data ingestion routines for Elexon BMRS OpenAPI streaming endpoints.
 - Verification of statistical error formulations (WAPE, RMSE, quantile interpolations).
 - UI component styling and responsive layout optimization with Tailwind CSS.
-- Drafting test cases and presentation walkthrough scripts.
+- Drafting test cases and structural documentation.
 
 All domain logic, SQL window functions, statistical models, and application code were thoroughly reviewed, debugged, and verified against official Elexon market documentation.
