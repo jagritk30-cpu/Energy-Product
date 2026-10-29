@@ -2,7 +2,7 @@
 FastAPI application for UK Energy Utility Day-Ahead Wind Forecast & Procurement Platform.
 """
 import os
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, APIRouter, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -43,7 +43,9 @@ class ProcurementRequest(BaseModel):
     dayAheadPowerPriceGBP: float = Field(default=85.0, description="Day-Ahead power price £/MWh")
     cashoutPenaltyPriceGBP: float = Field(default=145.0, description="Imbalance cashout price £/MWh")
 
-@app.get("/api/health")
+router = APIRouter()
+
+@router.get("/health")
 def health():
     populated = is_db_populated()
     conn = get_db_connection()
@@ -63,7 +65,7 @@ def health():
         "market": "UK Day-Ahead Power Market (BMRS Elexon)"
     }
 
-@app.get("/api/forecasts/day-ahead")
+@router.get("/forecasts/day-ahead")
 def day_ahead_forecast(
     deliveryDate: str = Query("2026-01-15", pattern=r"^\d{4}-\d{2}-\d{2}$"),
     cutoffTime: str = Query("11:00", pattern=r"^\d{2}:\d{2}$")
@@ -73,7 +75,7 @@ def day_ahead_forecast(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/forecasts/evolution")
+@router.get("/forecasts/evolution")
 def forecast_evolution(
     deliveryDate: str = Query("2026-01-15", pattern=r"^\d{4}-\d{2}-\d{2}$")
 ):
@@ -82,7 +84,7 @@ def forecast_evolution(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/analytics/metrics")
+@router.get("/analytics/metrics")
 def analytics_metrics(
     startDate: str = Query("2026-01-01"),
     endDate: str = Query("2026-01-31"),
@@ -93,7 +95,7 @@ def analytics_metrics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/analytics/horizon")
+@router.get("/analytics/horizon")
 def analytics_horizon(
     startDate: str = Query("2026-01-01"),
     endDate: str = Query("2026-01-31")
@@ -103,7 +105,7 @@ def analytics_horizon(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/analytics/settlement-periods")
+@router.get("/analytics/settlement-periods")
 def analytics_settlement_periods(
     startDate: str = Query("2026-01-01"),
     endDate: str = Query("2026-01-31"),
@@ -114,7 +116,7 @@ def analytics_settlement_periods(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/analytics/distribution")
+@router.get("/analytics/distribution")
 def analytics_distribution(
     startDate: str = Query("2026-01-01"),
     endDate: str = Query("2026-01-31"),
@@ -125,7 +127,7 @@ def analytics_distribution(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/procurement/calculate")
+@router.post("/procurement/calculate")
 def procurement_calculate(req: ProcurementRequest):
     try:
         return calculate_net_procurement(
@@ -141,7 +143,11 @@ def procurement_calculate(req: ProcurementRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Mount frontend build static files if present (for single-container deployment)
+# Mount router under both /api and root to guarantee compatibility on Vercel and local
+app.include_router(router, prefix="/api")
+app.include_router(router)
+
+# Mount frontend build static files if present (for single-container/local deployment)
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist):
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
